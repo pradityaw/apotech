@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Injectable } from "@nestjs/common";
 import type { BpomDataMatrixVerifyRequest, BpomDataMatrixVerifyResponse } from "@apotech/shared";
 import type { GovernmentConnector } from "./connector.js";
@@ -28,6 +29,28 @@ export class BpomVerifyConnector implements GovernmentConnector<BpomDataMatrixVe
       providerStatus: "VERIFIED",
       raw: verificationResult
     };
+  }
+
+  async probeEndpoint(): Promise<number | "SKIPPED" | string> {
+    const baseUrl = process.env.BPOM_VERIFY_BASE_URL;
+    if (!baseUrl || baseUrl.includes("replace")) {
+      return "SKIPPED";
+    }
+
+    try {
+      const response = await axios.get(baseUrl, {
+        timeout: 10_000,
+        validateStatus: () => true
+      });
+
+      return response.status;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return error.response?.status ?? error.code ?? "ERROR";
+      }
+
+      return "ERROR";
+    }
   }
 
   private simulateAuthenticityCheck(
