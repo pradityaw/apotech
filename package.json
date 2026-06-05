@@ -4,6 +4,9 @@
   "private": true,
   "description": "Compliance-native pharmacy SaaS for Indonesian apotek.",
   "packageManager": "pnpm@10.9.0",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -12,7 +15,13 @@
     "format": "prettier --write .",
     "prisma": "prisma",
     "prisma:validate": "prisma validate --schema prisma/schema.prisma",
-    "prisma:generate": "prisma generate --schema prisma/schema.prisma"
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate": "prisma migrate dev --schema prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --schema prisma/schema.prisma",
+    "db:seed": "tsx prisma/seed.ts",
+    "test": "turbo test",
+    "test:unit": "vitest run",
+    "test:e2e": "turbo test --filter=e2e"
   },
   "keywords": [
     "pharmacy",
@@ -25,10 +34,13 @@
     "@nestjs/cli": "^10.4.9",
     "@prisma/client": "^6.19.3",
     "@types/node": "^22.15.29",
+    "@vitest/ui": "^4.1.8",
     "eslint": "^9.28.0",
     "prettier": "^3.5.3",
     "prisma": "^6.8.2",
+    "tsx": "^4.22.4",
     "turbo": "^2.5.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.8"
   }
 }

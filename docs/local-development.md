@@ -12,7 +12,8 @@
 pnpm install
 cp .env.example .env
 docker compose up -d
-pnpm prisma:generate
+pnpm prisma:migrate
+pnpm prisma db seed  # or pnpm db:seed
 ```
 
 ## Run
@@ -26,7 +27,7 @@ Default ports:
 - Backoffice: `http://localhost:3000`
 - API: `http://localhost:4000`
 - Compliance: `http://localhost:4100`
-- Postgres: `localhost:5432`
+- Postgres: `localhost:5433`
 - Redis: `localhost:6379`
 
 ## Verify
