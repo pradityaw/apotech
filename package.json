@@ -1,0 +1,34 @@
+{
+  "name": "apotech",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Compliance-native pharmacy SaaS for Indonesian apotek.",
+  "packageManager": "pnpm@10.9.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write .",
+    "prisma": "prisma",
+    "prisma:validate": "prisma validate --schema prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma"
+  },
+  "keywords": [
+    "pharmacy",
+    "indonesia",
+    "compliance",
+    "satusehat",
+    "bpom"
+  ],
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.9",
+    "@prisma/client": "^6.19.3",
+    "@types/node": "^22.15.29",
+    "eslint": "^9.28.0",
+    "prettier": "^3.5.3",
+    "prisma": "^6.8.2",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

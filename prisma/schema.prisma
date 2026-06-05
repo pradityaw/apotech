@@ -1,0 +1,348 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  PHARMACIST
+  CASHIER
+  AUDITOR
+}
+
+enum ProductSchedule {
+  GENERAL
+  LIMITED_OTC
+  PRESCRIPTION
+  NARCOTIC
+  PSYCHOTROPIC
+}
+
+enum InventoryMovementType {
+  RECEIPT
+  SALE
+  ADJUSTMENT
+  RETURN
+  TRANSFER_OUT
+  TRANSFER_IN
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  CARD
+  TRANSFER
+}
+
+enum ComplianceConnector {
+  SATUSEHAT
+  EMESO
+  BPOM_VERIFY
+  CORETAX
+  QRIS
+}
+
+enum ComplianceStatus {
+  PENDING
+  QUEUED
+  REPORTED
+  FAILED
+  DEAD_LETTER
+  SKIPPED
+}
+
+enum AdverseEventSeverity {
+  MILD
+  MODERATE
+  SEVERE
+  LIFE_THREATENING
+  DEATH
+}
+
+enum CoretaxInvoiceStatus {
+  DRAFT
+  UPLOADED
+  VALIDATED
+  REJECTED
+  QR_ISSUED
+}
+
+enum ConsentPurpose {
+  ACCOUNT_REGISTRATION
+  DISPENSING
+  SATUSEHAT_REPORTING
+  EMESO_REPORTING
+  TAX_INVOICE
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  EXPORT
+  SUBMIT_COMPLIANCE
+}
+
+model Pharmacy {
+  id                    String   @id @default(uuid())
+  legalName             String
+  displayName           String
+  siaNumber             String
+  npwp                  String?
+  nikFallbackEnabled    Boolean  @default(false)
+  addressLine1          String
+  city                  String
+  province              String
+  postalCode            String
+  pseRegistrationNumber String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  users              User[]
+  products           Product[]
+  stockBatches       StockBatch[]
+  inventoryMovements InventoryMovement[]
+  dispensingEvents   DispensingEvent[]
+  complianceJobs     ComplianceJob[]
+  adverseEvents      AdverseEventReport[]
+  coretaxInvoices    CoretaxInvoice[]
+  consentRecords     ConsentRecord[]
+  auditLogs          AuditLog[]
+
+  @@index([siaNumber])
+  @@index([npwp])
+}
+
+model User {
+  id         String   @id @default(uuid())
+  pharmacyId String
+  email      String   @unique
+  fullName   String
+  role       UserRole
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  pharmacy           Pharmacy @relation(fields: [pharmacyId], references: [id])
+  inventoryMovements InventoryMovement[]
+  dispensingEvents   DispensingEvent[] @relation("CashierDispensingEvents")
+  pharmacistEvents   DispensingEvent[] @relation("PharmacistDispensingEvents")
+  auditLogs          AuditLog[]
+
+  @@index([pharmacyId, role])
+}
+
+model Product {
+  id                     String          @id @default(uuid())
+  pharmacyId             String
+  bpomRegistrationNumber String?
+  gtin                   String?
+  name                   String
+  manufacturer           String?
+  strength               String?
+  dosageForm             String?
+  schedule               ProductSchedule @default(GENERAL)
+  reorderPoint           Int             @default(0)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  pharmacy           Pharmacy @relation(fields: [pharmacyId], references: [id])
+  stockBatches       StockBatch[]
+  inventoryMovements InventoryMovement[]
+  dispensingLines    DispensingLine[]
+  adverseEvents      AdverseEventReport[]
+
+  @@index([pharmacyId, name])
+  @@index([bpomRegistrationNumber])
+  @@index([gtin])
+}
+
+model StockBatch {
+  id             String   @id @default(uuid())
+  pharmacyId     String
+  productId      String
+  batchNumber    String
+  lotNumber      String?
+  expiryDate     DateTime
+  quantityOnHand Int      @default(0)
+  unitCost        Decimal? @db.Decimal(14, 2)
+  supplierName    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pharmacy           Pharmacy @relation(fields: [pharmacyId], references: [id])
+  product            Product @relation(fields: [productId], references: [id])
+  inventoryMovements InventoryMovement[]
+  dispensingLines    DispensingLine[]
+
+  @@unique([productId, batchNumber])
+  @@index([pharmacyId, expiryDate])
+}
+
+model InventoryMovement {
+  id          String                @id @default(uuid())
+  pharmacyId  String
+  productId   String
+  batchId     String?
+  type        InventoryMovementType
+  quantity    Int
+  reason      String?
+  occurredAt  DateTime              @default(now())
+  actorUserId String
+
+  pharmacy Pharmacy    @relation(fields: [pharmacyId], references: [id])
+  product  Product     @relation(fields: [productId], references: [id])
+  batch    StockBatch? @relation(fields: [batchId], references: [id])
+  actor    User        @relation(fields: [actorUserId], references: [id])
+
+  @@index([pharmacyId, occurredAt])
+  @@index([productId])
+}
+
+model DispensingEvent {
+  id                String        @id @default(uuid())
+  pharmacyId        String
+  cashierUserId     String
+  pharmacistUserId  String?
+  patientReference  String?
+  grossAmount       Decimal       @db.Decimal(14, 2)
+  paymentMethod     PaymentMethod
+  qrisTransactionId String?
+  completedOffline  Boolean       @default(false)
+  syncClientId      String?
+  dispensedAt       DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  pharmacy       Pharmacy          @relation(fields: [pharmacyId], references: [id])
+  cashier        User              @relation("CashierDispensingEvents", fields: [cashierUserId], references: [id])
+  pharmacist     User?             @relation("PharmacistDispensingEvents", fields: [pharmacistUserId], references: [id])
+  lines          DispensingLine[]
+  complianceJobs ComplianceJob[]
+  adverseEvents  AdverseEventReport[]
+  coretaxInvoice CoretaxInvoice?
+
+  @@index([pharmacyId, dispensedAt])
+  @@index([syncClientId])
+}
+
+model DispensingLine {
+  id                   String  @id @default(uuid())
+  dispensingEventId    String
+  productId            String
+  batchId              String?
+  quantity             Int
+  unitPrice            Decimal @db.Decimal(14, 2)
+  prescriptionRequired Boolean @default(false)
+  prescriptionNumber   String?
+
+  dispensingEvent DispensingEvent @relation(fields: [dispensingEventId], references: [id])
+  product          Product         @relation(fields: [productId], references: [id])
+  batch            StockBatch?     @relation(fields: [batchId], references: [id])
+
+  @@index([dispensingEventId])
+  @@index([productId])
+}
+
+model ComplianceJob {
+  id                String              @id @default(uuid())
+  pharmacyId        String
+  connector         ComplianceConnector
+  sourceEventId     String?
+  status            ComplianceStatus    @default(PENDING)
+  attemptCount      Int                 @default(0)
+  nextAttemptAt     DateTime?
+  lastError         String?
+  externalReference String?
+  payload           Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  pharmacy        Pharmacy          @relation(fields: [pharmacyId], references: [id])
+  dispensingEvent DispensingEvent?  @relation(fields: [sourceEventId], references: [id])
+
+  @@index([pharmacyId, connector, status])
+  @@index([status, nextAttemptAt])
+}
+
+model AdverseEventReport {
+  id                 String               @id @default(uuid())
+  pharmacyId         String
+  dispensingEventId  String?
+  suspectedProductId String?
+  patientInitials    String?
+  description        String
+  severity           AdverseEventSeverity
+  occurredAt         DateTime
+  reporterName       String
+  reporterContact    String?
+  consentCaptured    Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  pharmacy        Pharmacy          @relation(fields: [pharmacyId], references: [id])
+  dispensingEvent DispensingEvent?  @relation(fields: [dispensingEventId], references: [id])
+  suspectedProduct Product?         @relation(fields: [suspectedProductId], references: [id])
+
+  @@index([pharmacyId, occurredAt])
+}
+
+model CoretaxInvoice {
+  id                            String                @id @default(uuid())
+  pharmacyId                    String
+  saleId                        String                @unique
+  buyerNpwp                     String?
+  buyerNik                      String?
+  useNationalIdExportWorkaround Boolean               @default(false)
+  status                        CoretaxInvoiceStatus  @default(DRAFT)
+  nsfp                          String?
+  qrUrl                         String?
+  xmlPayload                    String?
+  lastError                     String?
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
+
+  pharmacy Pharmacy        @relation(fields: [pharmacyId], references: [id])
+  sale     DispensingEvent @relation(fields: [saleId], references: [id])
+
+  @@index([pharmacyId, status])
+}
+
+model ConsentRecord {
+  id               String         @id @default(uuid())
+  pharmacyId       String
+  subjectReference String
+  purpose          ConsentPurpose
+  granted          Boolean
+  capturedAt       DateTime       @default(now())
+  revokedAt        DateTime?
+  evidence         Json?
+
+  pharmacy Pharmacy @relation(fields: [pharmacyId], references: [id])
+
+  @@index([pharmacyId, subjectReference, purpose])
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  pharmacyId  String?
+  actorUserId String?
+  action      AuditAction
+  resourceType String
+  resourceId  String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  occurredAt  DateTime    @default(now())
+
+  pharmacy Pharmacy? @relation(fields: [pharmacyId], references: [id])
+  actor    User?     @relation(fields: [actorUserId], references: [id])
+
+  @@index([pharmacyId, occurredAt])
+  @@index([resourceType, resourceId])
+}
