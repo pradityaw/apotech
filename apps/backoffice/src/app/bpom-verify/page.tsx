@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeader } from "../../components/page-header";
 
 export const metadata: Metadata = {
   title: "BPOM Verification - ApoTech",
@@ -7,16 +8,18 @@ export const metadata: Metadata = {
 
 export default function BpomVerifyPage() {
   return (
-    <main className="shell">
-      <nav className="nav" aria-label="Primary navigation">
-        <div className="brand">ApoTech</div>
-        <div className="nav-links">
-          <span>POS</span>
-          <span className="active">Inventory</span>
-          <span>Compliance</span>
-          <span>Privacy</span>
-        </div>
-      </nav>
+    <>
+      <PageHeader
+        breadcrumbs={[{ label: "Compliance" }, { label: "BPOM Verify" }]}
+        recordType="Compliance"
+        title="Product Verification"
+        actions={
+          <>
+            <button className="cta secondary">Enter manually</button>
+            <button className="cta">Scan code</button>
+          </>
+        }
+      />
 
       <section className="hero">
         <div className="panel hero-copy">
@@ -25,10 +28,6 @@ export default function BpomVerifyPage() {
           <p className="lede">
             Scan or enter BPOM 2D DataMatrix codes to verify product authenticity against official BPOM databases before accepting goods.
           </p>
-          <div className="cta-row">
-            <button className="cta">Scan code</button>
-            <button className="cta secondary">Enter manually</button>
-          </div>
         </div>
 
         <aside className="panel compliance-card" aria-label="Verification form">
@@ -45,11 +44,11 @@ export default function BpomVerifyPage() {
               type="text"
               placeholder="01012345678901231725123110AB123"
               style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
+                padding: "7px 10px",
+                borderRadius: "2px",
                 border: "1px solid var(--line)",
                 fontFamily: "ui-monospace, monospace",
-                fontSize: "0.9rem",
+                fontSize: "0.75rem",
                 width: "200px"
               }}
             />
@@ -100,6 +99,6 @@ export default function BpomVerifyPage() {
           <strong>Now</strong>
         </div>
       </section>
-    </main>
+    </>
   );
 }

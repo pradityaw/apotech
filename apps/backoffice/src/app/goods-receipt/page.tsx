@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeader } from "../../components/page-header";
 
 export const metadata: Metadata = {
   title: "Goods Receipt - ApoTech",
@@ -7,16 +8,21 @@ export const metadata: Metadata = {
 
 export default function GoodsReceiptPage() {
   return (
-    <main className="shell">
-      <nav className="nav" aria-label="Primary navigation">
-        <div className="brand">ApoTech</div>
-        <div className="nav-links">
-          <span>POS</span>
-          <span className="active">Inventory</span>
-          <span>Compliance</span>
-          <span>Privacy</span>
-        </div>
-      </nav>
+    <>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Inventory", href: "/inventory" },
+          { label: "Goods Receipt" }
+        ]}
+        recordType="Inventory"
+        title="Goods Receipt"
+        actions={
+          <>
+            <button className="cta secondary">Manual entry</button>
+            <button className="cta">Scan DataMatrix</button>
+          </>
+        }
+      />
 
       <section className="hero">
         <div className="panel hero-copy">
@@ -25,10 +31,6 @@ export default function GoodsReceiptPage() {
           <p className="lede">
             Scan BPOM 2D DataMatrix codes to verify product authenticity, then record batch details and quantities for accurate stock tracking.
           </p>
-          <div className="cta-row">
-            <button className="cta">Scan DataMatrix</button>
-            <button className="cta secondary">Manual entry</button>
-          </div>
         </div>
 
         <aside className="panel compliance-card" aria-label="Verification status">
@@ -75,6 +77,6 @@ export default function GoodsReceiptPage() {
           <strong>✓</strong>
         </div>
       </section>
-    </main>
+    </>
   );
 }
