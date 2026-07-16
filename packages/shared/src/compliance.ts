@@ -49,13 +49,26 @@ export const adverseEventReportSchema = z.object({
 
 export type AdverseEventReport = z.infer<typeof adverseEventReportSchema>;
 
-export const bpomDataMatrixVerifyRequestSchema = z.object({
-  rawDataMatrix: z.string().min(1),
-  gtin: z.string().optional(),
-  serialNumber: z.string().optional(),
-  batchNumber: z.string().optional(),
-  expiryDate: z.string().optional()
-});
+export const bpomDataMatrixVerifyRequestSchema = z
+  .object({
+    rawDataMatrix: z.string().min(1).optional(),
+    gtin: z.string().min(1).optional(),
+    serialNumber: z.string().min(1).optional(),
+    batchNumber: z.string().min(1).optional(),
+    expiryDate: z.string().min(1).optional()
+  })
+  .refine(
+    (request) =>
+      request.rawDataMatrix ??
+      request.gtin ??
+      request.serialNumber ??
+      request.batchNumber ??
+      request.expiryDate,
+    {
+      message: "Provide rawDataMatrix or at least one explicit BPOM verification field",
+      path: ["rawDataMatrix"]
+    }
+  );
 
 export const bpomDataMatrixVerifyResponseSchema = z.object({
   authentic: z.boolean(),

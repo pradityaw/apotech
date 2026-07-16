@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { BpomVerifyConnector } from "./bpom-verify.connector.js";
 
+const GS1_GROUP_SEPARATOR = "\u001D";
+
 describe("BpomVerifyConnector", () => {
   let connector: BpomVerifyConnector;
 
@@ -22,6 +24,39 @@ describe("BpomVerifyConnector", () => {
     expect(result.raw.status).toBe("VALID");
     expect(result.raw.productName).toBe("Amoxicillin 500mg");
     expect(result.raw.registrationNumber).toBe("BPOM RI MD 1234567890123");
+  });
+
+  it("should parse a known GTIN from rawDataMatrix only", async () => {
+    const result = await connector.submit({
+      rawDataMatrix: "01012345678901231799123110AB123"
+    });
+
+    expect(result.providerStatus).toBe("VERIFIED");
+    expect(result.raw.authentic).toBe(true);
+    expect(result.raw.status).toBe("VALID");
+    expect(result.raw.productName).toBe("Amoxicillin 500mg");
+    expect(result.raw.registrationNumber).toBe("BPOM RI MD 1234567890123");
+    expect(result.raw.rawProviderResponse).toMatchObject({
+      gtin: "01234567890123",
+      batchNumber: "AB123",
+      expiryDate: "2099-12-31"
+    });
+  });
+
+  it("should parse GS-separated serial numbers from rawDataMatrix", async () => {
+    const result = await connector.submit({
+      rawDataMatrix: `01012345678901231799123110AB123${GS1_GROUP_SEPARATOR}21SERIAL-001`
+    });
+
+    expect(result.providerStatus).toBe("VERIFIED");
+    expect(result.raw.authentic).toBe(true);
+    expect(result.raw.status).toBe("VALID");
+    expect(result.raw.rawProviderResponse).toMatchObject({
+      gtin: "01234567890123",
+      batchNumber: "AB123",
+      serialNumber: "SERIAL-001",
+      expiryDate: "2099-12-31"
+    });
   });
 
   it("should return authentic=true for valid DataMatrix with known GTIN 01234567890124", async () => {
@@ -56,7 +91,7 @@ describe("BpomVerifyConnector", () => {
     expect(result.raw.registrationNumber).toBe("BPOM RI MD 1234567890125");
   });
 
-  it("should return authentic=false for short DataMatrix", async () => {
+  it("should return authentic=false and UNKNOWN for malformed too-short DataMatrix", async () => {
     const result = await connector.submit({
       rawDataMatrix: "123"
     });
@@ -91,6 +126,16 @@ describe("BpomVerifyConnector", () => {
     expect(result.raw.status).toBe("EXPIRED");
   });
 
+  it("should return status=EXPIRED for expired product from rawDataMatrix only", async () => {
+    const result = await connector.submit({
+      rawDataMatrix: "01012345678901231720123110AB123"
+    });
+
+    expect(result.providerStatus).toBe("VERIFIED");
+    expect(result.raw.authentic).toBe(true);
+    expect(result.raw.status).toBe("EXPIRED");
+  });
+
   it("should return status=RECALLED for recalled batch", async () => {
     const result = await connector.submit({
       rawDataMatrix: "01012345678901231726123110RECALLED-TEST",
@@ -105,9 +150,35 @@ describe("BpomVerifyConnector", () => {
     expect(result.raw.status).toBe("RECALLED");
   });
 
+  it("should return status=RECALLED for recalled batch from rawDataMatrix only", async () => {
+    const result = await connector.submit({
+      rawDataMatrix: "01012345678901231799123110RECALLED-TEST"
+    });
+
+    expect(result.providerStatus).toBe("VERIFIED");
+    expect(result.raw.authentic).toBe(true);
+    expect(result.raw.status).toBe("RECALLED");
+  });
+
+  it("should prefer explicit fields over parsed DataMatrix fields", async () => {
+    const result = await connector.submit({
+      rawDataMatrix: "01012345678901231799123110RECALLED-TEST",
+      batchNumber: "AB123"
+    });
+
+    expect(result.providerStatus).toBe("VERIFIED");
+    expect(result.raw.authentic).toBe(true);
+    expect(result.raw.status).toBe("VALID");
+    expect(result.raw.rawProviderResponse).toMatchObject({
+      gtin: "01234567890123",
+      batchNumber: "AB123",
+      expiryDate: "2099-12-31"
+    });
+  });
+
   it("should return status=UNKNOWN when GTIN and batch are missing", async () => {
     const result = await connector.submit({
-      rawDataMatrix: "01012345678901231725123110AB123"
+      serialNumber: "SERIAL-ONLY"
     });
 
     expect(result.providerStatus).toBe("VERIFIED");
