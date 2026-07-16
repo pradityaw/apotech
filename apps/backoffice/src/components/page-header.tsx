@@ -1,42 +1,18 @@
-import type { ReactNode } from "react";
-import { Fragment } from "react";
-
-interface Crumb {
-  label: string;
-  href?: string;
-}
+import { Breadcrumbs, type Crumb } from "./breadcrumbs";
 
 interface PageHeaderProps {
-  breadcrumbs?: Crumb[];
-  recordType?: string;
+  breadcrumbs: Crumb[];
   title: string;
-  actions?: ReactNode;
+  recordType?: string;
+  actions?: React.ReactNode;
 }
 
-export function PageHeader({ breadcrumbs, recordType, title, actions }: PageHeaderProps) {
+export function PageHeader({ breadcrumbs, title, recordType, actions }: PageHeaderProps) {
   return (
     <div className="page-header">
-      {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            {breadcrumbs.map((crumb, index) => (
-              <Fragment key={`${crumb.label}-${index}`}>
-                {index > 0 && (
-                  <li className="breadcrumb-sep" aria-hidden="true">
-                    /
-                  </li>
-                )}
-                <li>
-                  {crumb.href ? <a href={crumb.href}>{crumb.label}</a> : <span>{crumb.label}</span>}
-                </li>
-              </Fragment>
-            ))}
-          </ol>
-        </nav>
-      )}
-
+      <Breadcrumbs items={breadcrumbs} />
       <div className="page-header-row">
-        <div>
+        <div className="page-header-titles">
           {recordType && <div className="page-header-eyebrow">{recordType}</div>}
           <h1 className="page-header-title">{title}</h1>
         </div>

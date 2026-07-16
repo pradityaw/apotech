@@ -1,4 +1,5 @@
 import type { ComplianceConnector, ComplianceStatus } from "@apotech/shared";
+import { PageHeader } from "../components/page-header";
 
 type ComplianceRow = {
   connector: ComplianceConnector;
@@ -25,16 +26,18 @@ const statusClass: Record<ComplianceStatus, string> = {
 
 export default function Home() {
   return (
-    <main className="shell">
-      <nav className="nav" aria-label="Primary navigation">
-        <div className="brand">ApoTech</div>
-        <div className="nav-links">
-          <span>POS</span>
-          <a href="/inventory" style={{ color: "inherit", textDecoration: "none" }}>Inventory</a>
-          <span>Compliance</span>
-          <span>Privacy</span>
-        </div>
-      </nav>
+    <>
+      <PageHeader
+        breadcrumbs={[{ label: "Overview" }, { label: "Home" }]}
+        recordType="Operations"
+        title="Command Center"
+        actions={
+          <>
+            <button className="cta secondary">Receive stock</button>
+            <button className="cta">Review pending reports</button>
+          </>
+        }
+      />
 
       <section className="hero">
         <div className="panel hero-copy">
@@ -43,12 +46,6 @@ export default function Home() {
           <p className="lede">
             Dispense, track batches, accept QRIS, and keep SatuSehat, e-MESO, BPOM, and Coretax work visible in one operational command center.
           </p>
-          <div className="cta-row">
-            <button className="cta">Review pending reports</button>
-            <a href="/goods-receipt" style={{ textDecoration: "none" }}>
-              <button className="cta secondary">Receive stock</button>
-            </a>
-          </div>
         </div>
 
         <aside className="panel compliance-card" aria-label="Compliance status">
@@ -90,6 +87,6 @@ export default function Home() {
           <strong>96%</strong>
         </div>
       </section>
-    </main>
+    </>
   );
 }

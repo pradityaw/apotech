@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(git)",
+      "Exec(pnpm)",
+      "Exec(node)",
+      "Exec(docker)",
+      "Exec(npx)",
+      "Write(**)",
+      "Exec(prisma)"
+    ],
+    "deny": [
+      "Exec(sudo)",
+      "Exec(rm -rf)",
+      "Exec(dd)"
+    ]
+  }
+}
