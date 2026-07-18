@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, existsSync, appendFileSync } from "node:fs
 import { parseUnits, formatUnits, parseEther, formatEther } from "viem";
 import { makeClients, getBalances, ERC20_ABI } from "./lib.mjs";
 import { quoteBest, swapExactIn } from "./dex.mjs";
+import { sourceBasePairs } from "./universe.mjs";
 import { TOKENS, RISK, APIS } from "../config.mjs";
 
 const LIVE = process.argv.includes("--live");
@@ -117,30 +118,13 @@ if (targetUsd < 20) {
   process.exit(0);
 }
 
-// scan
+// scan — shared broad candidate universe (see universe.mjs)
 async function getJson(url) {
   const res = await fetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
   return res.json();
 }
-const boostAddrs = new Set();
-for (const path of ["/token-boosts/top/v1", "/token-boosts/latest/v1"]) {
-  try { for (const b of (await getJson(`${APIS.dexscreener}${path}`)) ?? []) if (b.chainId === "base" && b.tokenAddress) boostAddrs.add(b.tokenAddress.toLowerCase()); } catch {}
-}
-const pairsMap = new Map();
-const addrList = [...boostAddrs];
-for (let i = 0; i < addrList.length; i += 30) {
-  try {
-    const d = await getJson(`${APIS.dexscreener}/latest/dex/tokens/${addrList.slice(i, i + 30).join(",")}`);
-    for (const p of d.pairs ?? []) if (p.chainId === "base") {
-      const prev = pairsMap.get(p.pairAddress);
-      if (!prev || (p.liquidity?.usd ?? 0) > (prev.liquidity?.usd ?? 0)) pairsMap.set(p.pairAddress, p);
-    }
-  } catch {}
-}
-for (const q of ["WETH", "USDC"]) {
-  try { const d = await getJson(`${APIS.dexscreener}/latest/dex/search?q=${q}`); for (const p of d.pairs ?? []) if (p.chainId === "base") { const prev = pairsMap.get(p.pairAddress); if (!prev || (p.liquidity?.usd ?? 0) > (prev.liquidity?.usd ?? 0)) pairsMap.set(p.pairAddress, p); } } catch {}
-}
+const pairsMap = await sourceBasePairs();
 
 const now = Date.now();
 const quoteWl = [TOKENS.WETH.address, TOKENS.USDC.address].map((a) => a.toLowerCase());
