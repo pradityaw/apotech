@@ -12,3 +12,10 @@ survives container restarts. Equity is marked in USD.
 |-----------|--------------|-----------|
 
 Start capital: $100 (pending funding). Target: $200 by day 7.
+
+## Live log
+
+- **2026-07-18 ~12:10Z** — Network access opened (Custom policy). Pre-flight passed: RPC live, Base block ~48.79M, WETH/USDC/Router/Quoter verified on-chain.
+- Wallet 0x97CC49c28877ffaf0031A5C16FDFe1578DfeA702 funded: **0.075696 ETH ≈ $139.28** (ETH $1840). Baseline equity **$139.28**.
+- Wrapped 0.074696 ETH -> WETH (tx 0x62a7e7bb...) keeping 0.001 ETH gas reserve. Trading base asset = WETH.
+- Engine dry-run: no qualifying setup (gates: score>5, 1h vol>$20k, positive 1h momentum) -> holding ETH. Hourly autonomous loop armed.

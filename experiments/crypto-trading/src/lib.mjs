@@ -1,3 +1,4 @@
+import "./proxy.mjs"; // must run before any network call — installs proxy + CA dispatcher
 import { createPublicClient, createWalletClient, http, formatEther, formatUnits, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
@@ -13,6 +14,13 @@ export const ERC20_ABI = parseAbi([
 ]);
 
 export function loadWallet() {
+  // Prefer an environment secret so scheduled runs survive container recycling;
+  // fall back to the local gitignored keyfile for interactive sessions.
+  const envKey = process.env.WALLET_PRIVATE_KEY;
+  if (envKey && /^(0x)?[0-9a-fA-F]{64}$/.test(envKey.trim())) {
+    const k = envKey.trim();
+    return privateKeyToAccount(k.startsWith("0x") ? k : `0x${k}`);
+  }
   const raw = JSON.parse(readFileSync(new URL("../.wallet.json", import.meta.url), "utf8"));
   return privateKeyToAccount(raw.privateKey);
 }

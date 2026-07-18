@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "undici": "^8.7.0",
     "viem": "^2.55.2"
   },
   "type": "module",
