@@ -44,3 +44,14 @@ export const RISK = {
   gasReserveEth: 0.001,           // always keep this much ETH for exits
   requireGoPlusClean: true,       // token must pass honeypot/tax screening
 };
+
+// ---- Entry momentum gates (tunable; escalated over the week if no trades) ----
+// Interpretable replacement for the old opaque score>5 gate. A token must show a
+// real, sustained move with tradeable volume — not sub-1% noise. These are the
+// ONLY loosenable knobs; the RISK safety rails above stay fixed.
+export const ENTRY = {
+  minCh1hPct: 4.0,   // >= +4% in the last hour (genuine move, not noise)
+  minCh6hPct: 0.0,   // 6h change >= 0 (trend intact, not a dead-cat 1h spike)
+  minVol1hUsd: 50_000, // >= $50k 1h volume so entry/exit doesn't move the pool
+};
+

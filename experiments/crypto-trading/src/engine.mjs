@@ -16,7 +16,7 @@ import { parseUnits, formatUnits, parseEther, formatEther } from "viem";
 import { makeClients, getBalances, ERC20_ABI } from "./lib.mjs";
 import { quoteBest, swapExactIn } from "./dex.mjs";
 import { sourceBasePairs } from "./universe.mjs";
-import { TOKENS, RISK, APIS } from "../config.mjs";
+import { TOKENS, RISK, APIS, ENTRY } from "../config.mjs";
 
 const LIVE = process.argv.includes("--live");
 const stateDir = new URL("../state/", import.meta.url);
@@ -139,11 +139,18 @@ for (const p of cands) {
   const ch1h = p.priceChange?.h1 ?? 0, ch6h = p.priceChange?.h6 ?? 0, vol1h = p.volume?.h1 ?? 0, liq = p.liquidity?.usd ?? 1;
   p._score = (ch1h * 0.6 + ch6h * 0.4) * Math.log10(1 + vol1h) * Math.min(1, vol1h / liq);
 }
-// entry gates: positive momentum + real, live volume
-cands = cands.filter((p) => p._score > 5 && (p.volume?.h1 ?? 0) > 20_000 && (p.priceChange?.h1 ?? 0) > 0);
-cands.sort((a, b) => b._score - a._score);
+// entry gates: interpretable, sustained momentum with tradeable volume (config.ENTRY).
+cands = cands.filter((p) =>
+  (p.priceChange?.h1 ?? -999) >= ENTRY.minCh1hPct &&
+  (p.priceChange?.h6 ?? -999) >= ENTRY.minCh6hPct &&
+  (p.volume?.h1 ?? 0) >= ENTRY.minVol1hUsd
+);
+cands.sort((a, b) => b._score - a._score); // rank survivors by composite momentum
 
-if (!cands.length) { log("no qualifying entry setup (need score>5, 1h vol>$20k, positive 1h). Holding."); process.exit(0); }
+if (!cands.length) {
+  log(`no qualifying entry (need 1h>=${ENTRY.minCh1hPct}%, 6h>=${ENTRY.minCh6hPct}%, vol1h>=$${ENTRY.minVol1hUsd}). Holding.`);
+  process.exit(0);
+}
 
 // security screen the top pick
 const top = cands[0];
