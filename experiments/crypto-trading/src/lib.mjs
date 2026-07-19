@@ -1,5 +1,5 @@
 import "./proxy.mjs"; // must run before any network call — installs proxy + CA dispatcher
-import { createPublicClient, createWalletClient, http, formatEther, formatUnits, parseAbi } from "viem";
+import { createPublicClient, createWalletClient, http, fallback, formatEther, formatUnits, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { readFileSync } from "node:fs";
@@ -25,25 +25,23 @@ export function loadWallet() {
   return privateKeyToAccount(raw.privateKey);
 }
 
-async function firstHealthyRpc() {
-  for (const url of CHAIN.rpcUrls) {
-    try {
-      const client = createPublicClient({ chain: base, transport: http(url, { timeout: 8_000 }) });
-      await client.getBlockNumber();
-      return url;
-    } catch {
-      // try next
-    }
-  }
-  throw new Error(`No reachable RPC among: ${CHAIN.rpcUrls.join(", ")} — check the network allowlist.`);
+// Fallback transport across all configured RPCs with per-request retries.
+// Public RPCs rate-limit aggressively ("over rate limit" on mainnet.base.org);
+// fallback() rotates to the next RPC on failure instead of dying mid-swap.
+function makeTransport() {
+  return fallback(
+    CHAIN.rpcUrls.map((url) => http(url, { timeout: 10_000, retryCount: 3, retryDelay: 800 })),
+    { rank: false }
+  );
 }
 
 export async function makeClients() {
-  const url = await firstHealthyRpc();
   const account = loadWallet();
-  const publicClient = createPublicClient({ chain: base, transport: http(url) });
-  const walletClient = createWalletClient({ account, chain: base, transport: http(url) });
-  return { publicClient, walletClient, account, rpcUrl: url };
+  const transport = makeTransport();
+  const publicClient = createPublicClient({ chain: base, transport });
+  const walletClient = createWalletClient({ account, chain: base, transport });
+  await publicClient.getBlockNumber(); // fail fast if nothing reachable
+  return { publicClient, walletClient, account, rpcUrl: "fallback(" + CHAIN.rpcUrls.join(",") + ")" };
 }
 
 export async function getBalances(publicClient, address) {
